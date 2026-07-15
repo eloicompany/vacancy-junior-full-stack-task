@@ -7,16 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Currency {
+  USD
+  EUR
+}
+
 model Account {
-  id        String     @id @default(uuid())
+  id        String   @id @default(uuid())
   userId    String
   ownerName String
-  balance   Float
-  currency  String     @default("USD")
-  createdAt DateTime   @default(now())
+  balance   Decimal  @default(0) @db.Decimal(10, 2)
+  currency  Currency @default(USD)
+  createdAt DateTime @default(now())
 
-  outgoing  Transfer[] @relation("from")
-  incoming  Transfer[] @relation("to")
+  outgoing Transfer[] @relation("from")
+  incoming Transfer[] @relation("to")
 }
 
 model Transfer {
@@ -25,6 +30,6 @@ model Transfer {
   fromAccountId String
   toAccount     Account  @relation("to", fields: [toAccountId], references: [id])
   toAccountId   String
-  amount        Float
+  amount        Decimal  @default(0) @db.Decimal(10, 2)
   createdAt     DateTime @default(now())
 }

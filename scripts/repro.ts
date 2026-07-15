@@ -25,6 +25,70 @@ async function balances() {
   const accs = await prisma.account.findMany({ orderBy: { ownerName: "asc" } });
   return Object.fromEntries(accs.map((a) => [a.ownerName, a.balance]));
 }
+async function bugMissingAwait() {
+  console.log("\n── БАГ 1: відсутній await ──");
+  await reset();
+
+  await prisma.$transaction(async (tx) => {
+/// тут я пропустив await
+    tx.account.update({
+      where: { id: "acc-alice" },
+      data: { balance: { decrement: 100 } },
+    });
+
+    await tx.account.update({
+      where: { id: "acc-bob" },
+      data: { balance: { increment: 100 } },
+    });
+  });
+
+  const alice = await prisma.account.findUnique({ where: { id: "acc-alice" } });
+  const bob = await prisma.account.findUnique({ where: { id: "acc-bob" } });
+
+  console.log("Alice:", alice?.balance); // 1000 не змінився
+  console.log("Bob:", bob?.balance);     // 600 отримав гроші з нічого
+}
+
+async function bugInsufficientFunds() {
+  console.log("баг 2: переказ більше ніж є");
+  await reset();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.account.update({
+      where: { id: "acc-bob" },
+      data: { balance: { decrement: 999999 } },
+    });
+    await tx.account.update({
+      where: { id: "acc-alice" },
+      data: { balance: { increment: 999999 } },
+    });
+  });
+
+  const bob = await prisma.account.findUnique({ where: { id: "acc-bob" } });
+  console.log("Bob:", bob?.balance); // повинен піти пішов в мінус
+}
+
+
+/// Перевірка виправленого коду
+async function verifyFix() {
+  console.log("ФІКС: перевірка виправленого коду");
+
+  // Тест 1: переказ більше ніж є
+  await reset();
+  const r1 = await transferMoney({ fromAccountId: "acc-alice", toAccountId: "acc-bob", amount: 999999 });
+  log("ФІКС: відхилено переказ більше ніж є", !r1.success);
+
+  // Тест 2: переказ самому собі
+  await reset();
+  const r2 = await transferMoney({ fromAccountId: "acc-alice", toAccountId: "acc-alice", amount: 100 });
+  log("ФІКС: відхилено переказ на той самий рахунок", !r2.success);
+
+  // Тест 3 успішний переказ
+  await reset();
+  const r4 = await transferMoney({ fromAccountId: "acc-alice", toAccountId: "acc-bob", amount: 200 });
+  const alice = await prisma.account.findUnique({ where: { id: "acc-alice" } });
+  const bob   = await prisma.account.findUnique({ where: { id: "acc-bob" } });
+}
 
 async function main() {
   await reset();
@@ -39,6 +103,10 @@ async function main() {
     amount: 999999,
   });
 
+  console.log("Перевірка фіксу")
+  bugMissingAwait()
+  bugInsufficientFunds()
+  await verifyFix();
   console.log("Баланси після:", await balances());
   console.log(
     "Якщо у Bob від'ємний баланс — баг відтворено. Після фіксу переказ має впасти з помилкою."

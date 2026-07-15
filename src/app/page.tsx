@@ -16,7 +16,7 @@ export default async function Home() {
       <ul>
         {accounts.map((a) => (
           <li key={a.id}>
-            <b>{a.ownerName}</b> ({a.id}) — {a.balance} {a.currency}
+            <b>{a.ownerName}</b> ({a.id}) — {a.balance.toString()} {a.currency}
           </li>
         ))}
       </ul>
