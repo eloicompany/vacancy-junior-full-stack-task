@@ -4,6 +4,44 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { TransferInput } from "./transfer";
 
+// ========== NEW
+// Треба було додати зміни в кореневу функцію, щоб мануально додати помилку. Щоб цього не робити, робимо фунцію копію.
+// export async function transferSwallowError(input: TransferInput) {
+//   const { fromAccountId, toAccountId, amount } = input;
+
+//   const from = await prisma.account.findUnique({
+//     where: { id: fromAccountId },
+//   });
+
+//   const to = await prisma.account.findUnique({ where: { id: toAccountId } });
+
+//   if (!from || !to) {
+//     throw new Error("Account not found");
+//   }
+
+//   try {
+//     throw new Error("Failed!")
+//     await prisma.account.update({
+//       where: { id: fromAccountId },
+//       data: { balance: { decrement: amount } },
+//     });
+//     await prisma.account.update({
+//       where: { id: toAccountId },
+//       data: { balance: { increment: amount } },
+//     });
+//     await prisma.transfer.create({
+//       data: { fromAccountId, toAccountId, amount },
+//     });
+
+//     revalidatePath("/");
+//     return { success: true };
+//   } catch (e) {
+//     console.log("Transfer failed", input, e);
+//     return { success: false };
+//   }
+// }
+
+// ========== WITH BUGS
 // Треба було додати зміни в кореневу функцію, щоб мануально додати помилку. Щоб цього не робити, робимо фунцію копію.
 export async function transferSwallowError(input: TransferInput) {
   const { fromAccountId, toAccountId, amount } = input;

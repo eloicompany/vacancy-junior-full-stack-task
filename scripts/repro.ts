@@ -147,7 +147,7 @@ async function transferDifferentCurrency() {
   // Фактично — система опрацьовує запит і здійснює переказ.
 
   await transferMoney({
-    fromAccountId: "acc-bob",
+    fromAccountId: "acc-alice",
     toAccountId: "acc-carol",
     amount: 10,
   });
@@ -219,22 +219,33 @@ async function failedIdempotency() {
 
   console.log("Баланси після:", await balances());
   console.log(
-    "Якщо у Alice зиеншиться баланс на 100, а Carol не отримає переказ - багу відтворено. Після фіксу Alice має негайно отримати гроші назад після помилки.",
+    "Якщо у Alice зменшиться баланс на 100, а Carol не отримає переказ - багу відтворено. Після фіксу Alice має негайно отримати гроші назад після помилки.",
   );
 }
 
-main()
-  .then(() => invalidAmount())
-  .then(() => minusAmount())
-  .then(() => transferYourself())
-  .then(() => transferDifferentCurrency())
-  .then(() => unauthorizedTransfer())
-  .then(() => swallowedError())
-  .then(() => failedIdempotency())
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+async function runAllTests() {
+  const tests = [
+    { name: "main", fn: main },
+    { name: "invalidAmount", fn: invalidAmount },
+    { name: "minusAmount", fn: minusAmount },
+    { name: "transferYourself", fn: transferYourself },
+    { name: "transferDifferentCurrency", fn: transferDifferentCurrency },
+    { name: "unauthorizedTransfer", fn: unauthorizedTransfer },
+    { name: "swallowedError", fn: swallowedError },
+    { name: "failedIdempotency", fn: failedIdempotency },
+  ];
+
+  for (const test of tests) {
+    try {
+      console.log(`--- Running: ${test.name} ---`);
+      await test.fn();
+      console.log(`${test.name} passed.`);
+    } catch (e) {
+      console.error(`❌ ${test.name} failed:`, e instanceof Error ? e.message : "Error occured");
+    }
+  }
+
+  await prisma.$disconnect();
+}
+
+runAllTests();
