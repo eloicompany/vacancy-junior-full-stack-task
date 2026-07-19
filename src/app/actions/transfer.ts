@@ -69,7 +69,7 @@ export type TransferInput = {
 //   }
 // }
 
-// ========== WITH BUGS
+// // ========== WITH BUGS
 export async function transferMoney(input: TransferInput) {
   const { fromAccountId, toAccountId, amount } = input;
 
