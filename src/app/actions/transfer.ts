@@ -1,7 +1,6 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export type TransferInput = {
@@ -14,9 +13,16 @@ export type TransferInput = {
 // Цей код зараз у проді. Він "працює" на демо, але вже були скарги
 // від користувачів і кілька дивних балансів у базі.
 export async function transferMoney(input: TransferInput) {
+  // Додати валідацію на відємну суму
   const { fromAccountId, toAccountId, amount } = input;
 
-  const from = await prisma.account.findUnique({ where: { id: fromAccountId } });
+  const from = await prisma.account.findUnique({
+    where: { id: fromAccountId },
+  });
+
+  // додати валідацію що сума переведення не може перебільшувати суму на акаунті
+  // додати валідацію що наразі айдішка юзера фром та кореневого юзера співпадають
+  // додати валідацію на валюту що є на акаунту - у фром та ту мають бути однакові каренсі
   const to = await prisma.account.findUnique({ where: { id: toAccountId } });
 
   if (!from || !to) {
